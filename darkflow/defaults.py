@@ -24,7 +24,12 @@ class argHandler(dict):
         self.define('savepb', False, 'save net and weight to a .pb file')
         self.define('gpu', 0.0, 'how much gpu (from 0.0 to 1.0)')
         self.define('gpuName', '/gpu:0', 'GPU device name')
-        self.define('lr', 1e-5, 'learning rate')
+        self.define('lr', 1e-4, 'initial learning rate')
+        # added to hard code a cyclical decaying learning rate
+        self.define('min_lr', 1e-7, 'minimum learning rate')
+        self.define('lr_decay', 0.996, 'learning rate exponential decay factor')
+        self.define('step_size', 16, 'half length of each cycle')
+        # end of flag additions
         self.define('keep',20,'Number of most recent training results to save')
         self.define('batch', 16, 'batch size')
         self.define('epoch', 1000, 'number of epoch')

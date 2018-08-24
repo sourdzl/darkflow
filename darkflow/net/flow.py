@@ -35,16 +35,31 @@ def train(self):
 
     batches = self.framework.shuffle()
     loss_op = self.framework.loss
+    # initial LR
+    max_lr = self.FLAGS.lr
+    # never go below this LR
+    base_lr = self.FLAGS.min_lr
+    # number of training iterations per half cycle
+    step_size = self.FLAGS.step_size
+    # exponential decay factor on LR maximum
+    gamma = self.FLAGS.lr_decay
 
     for i, (x_batch, datum) in enumerate(batches):
         if not i: self.say(train_stats.format(
-            self.FLAGS.lr, self.FLAGS.batch,
-            self.FLAGS.epoch, self.FLAGS.save
+            self.FLAGS.lr, self.FLAGS.min_lr,
+            self.FLAGS.step_size, self.FLAGS.lr_decay,
+            self.FLAGS.batch, self.FLAGS.epoch, self.FLAGS.save
         ))
+
+        # cyclical learning rate calculation
+        cycle = np.floor(1 + i / (2 * step_size))
+        x = np.abs(i / step_size - 2*cycle + 1)
+        lr = base_lr + (max_lr - base_lr) * np.maximum(0, x) * gamma **(iterations)
 
         feed_dict = {
             loss_ph[key]: datum[key] 
                 for key in loss_ph }
+        feed_dict[learning_rate] = lr
         feed_dict[self.inp] = x_batch
         feed_dict.update(self.feed)
 
@@ -63,8 +78,8 @@ def train(self):
         if self.FLAGS.summary:
             self.writer.add_summary(fetched[2], step_now)
 
-        form = 'step {} - loss {} - moving ave loss {}'
-        self.say(form.format(step_now, loss, loss_mva))
+        form = 'actual lr {} step {} - loss {} - moving ave loss {}'
+        self.say(form.format(lr, step_now, loss, loss_mva))
         profile += [(loss, loss_mva)]
 
         ckpt = (i+1) % (self.FLAGS.save // self.FLAGS.batch)
